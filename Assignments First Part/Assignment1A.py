@@ -9,18 +9,25 @@
 #
 # The files are delimited using tabs.
 
+# ======================================================================================================================
+# The reason that exists methods like load_answer_<number> is just for printing purposes
+# ======================================================================================================================
+
 import networkx as nx
 import pandas as pd
 import numpy as np
 from networkx.algorithms import bipartite
 
 # This is the set of employees
-employees = {'Pablo', 'Lee', 'Georgia', 'Vincent', 'Andy', 'Frida', 'Joan', 'Claude'}
+employees = {"Pablo", "Lee", "Georgia", "Vincent", "Andy", "Frida", "Joan", "Claude"}
 
 # This is the set of movies
-movies = {'The Shawshank Redemption', 'Forrest Gump', 'The Matrix', 'Anaconda', 'The Social Network', 'The Godfather',
-          'Monty Python and the Holy Grail', 'Snakes on a Plane', 'Kung Fu Panda', 'The Dark Knight', 'Mean Girls'}
+movies = {"The Shawshank Redemption", "Forrest Gump", "The Matrix", "Anaconda", "The Social Network", "The Godfather",
+          "Monty Python and the Holy Grail", "Snakes on a Plane", "Kung Fu Panda", "The Dark Knight", "Mean Girls"}
 
+
+file_path = "./data/employee_movies_preferences.txt"
+file_path_relationships = "./data/employee_relationships.txt"
 
 # The following method can be used to plot your graphs
 # It would preferably be commented out upon submission
@@ -45,6 +52,7 @@ def plot_graph(G, weight_name=None):
         nx.draw_networkx(G, pos, edges=edges)
     plt.show()
 
+
 # ### Question 1
 #
 # Load the bipartite graph contained in `employee_movies_preferences.txt` by using NetworkX and return the graph
@@ -54,24 +62,39 @@ def plot_graph(G, weight_name=None):
 
 def answer_one():
     # Your Code Here
+    G = nx.read_adjlist(file_path, delimiter="\t")
+    print("1A 1a------------------------------------------------------------------------------------------")
+    print("Is bipartice: ")
+    print(bipartite.is_bipartite(G))
+    print("1A 1b------------------------------------------------------------------------------------------")
+    print("G info: ")
+    print(nx.info(G))
+    # plot_graph(G)
+    return G  # Your Answer Here
 
-    return  # Your Answer Here
 
+def load_answer_one():
+    # Your Code Here
+    G = nx.read_adjlist(file_path, delimiter="\t")
+    # plot_graph(G)
+    return G  # Your Answer Here
 
 # ### Question 2
 #
-# Utilizing the graph from the previous question, add node attributes named `'type'` in which movies have the value
-# `'movie'`, while employees have the value `'employee'`. Then, return the graph.
+# Utilizing the graph from the previous question, add node attributes named `"type"` in which movies have the value
+# `"movie"`, while employees have the value `"employee"`. Then, return the graph.
 #
 # *This function should return
 
 
-# [*Returns* a networkx graph with node attributes `{'type': 'movie'}` or `{'type': 'employee'}`]
+# [*Returns* a networkx graph with node attributes `{"type": "movie"}` or `{"type": "employee"}`]
 
 def answer_two():
     # Your Code Here
-
-    return  # Your Answer Here
+    G = load_answer_one()
+    nx.set_node_attributes(G, dict.fromkeys(employees, "employee"), "type")
+    nx.set_node_attributes(G, dict.fromkeys(movies, "movie"), "type")
+    return G  # Your Answer Here
 
 
 # ### Question 3
@@ -83,13 +106,18 @@ def answer_two():
 
 def answer_three():
     # Your Code Here
-
-    return  # Your Answer Here
+    G = answer_two()
+    M = bipartite.weighted_projected_graph(G, movies)
+    print("1A 3-------------------------------------------------------------------------------------------")
+    print("G info: ")
+    print(nx.info(M))
+    # plot_graph(M)
+    return M  # Your Answer Here
 
 
 # ### Question 4
 #
-# Let's suppose that we would like to find out if people who have a high relationship score to one another, also like
+# Let"s suppose that we would like to find out if people who have a high relationship score to one another, also like
 # the same types of movies
 #
 # To achieve this, find the the Pearson Correlation (using `DataFrame.corr()`) between the employee relationships scores
@@ -100,5 +128,24 @@ def answer_three():
 
 def answer_four():
     # Your Code Here
+    G = answer_two()
+    E = bipartite.weighted_projected_graph(G, employees)
 
-    return  # Your Answer Here
+    relationship_df = pd.read_csv(file_path_relationships, delim_whitespace=True, header=None, names=["E1", "E2", "Relationship"])
+    relationship_g = nx.from_pandas_edgelist(relationship_df, "E1", "E2", edge_attr="Relationship")
+
+    weight_attr = {(i[0], i[1]): i[2] for i in E.edges(data="weight")}
+    nx.set_edge_attributes(relationship_g, 0, "Shared_Movies")
+    nx.set_edge_attributes(relationship_g, weight_attr, "Shared_Movies")
+
+    idx = [(i[0], i[1]) for i in relationship_g.edges(data=True)]
+    relationship = [i[2] for i in relationship_g.edges(data="Relationship")]
+    movies = [i[2] for i in relationship_g.edges(data="Shared_Movies")]
+
+    # correlation_df = pd.DataFrame({"Relationship": relationship, "Shared_Movies": movies}, index=idx)
+    # correlation_pearson = correlation_df.corr("pearson")
+    correlation_pearson_np = np.corrcoef(relationship, movies)
+    print("1A 4-------------------------------------------------------------------------------------------")
+    print("Pearson Correlation: ")
+    print(correlation_pearson_np[0][1])
+    return correlation_pearson_np[0][1]  # Your Answer Here
