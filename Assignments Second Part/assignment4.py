@@ -25,15 +25,19 @@ from sklearn.preprocessing import MinMaxScaler
 # First of all, your task is to create a node attributed graph using the files above.
 # To make sure that your Graph is identical to the expected one, the expected one is also provided below (see Lines 28-31)
 
-G = pickle.load(open('data/email_prediction.pkl','rb'))
-print(nx.info(G))
-for n in G.nodes(data=True):
-    print (n)
+G = pickle.load(open("data/email_prediction.pkl","rb"))
+# print(nx.info(G))
+# for n in G.nodes(data=True):
+#     print (n)
 
 def create_the_email_graph():
     # Your Code Here
-
-    return  # Your Answer Here
+    G = nx.Graph()
+    G.add_edges_from(pickle.load(open("data/edge_list", "rb")))
+    G.add_nodes_from(pickle.load(open("data/node_list", "rb")))
+    # print(nx.info(G))
+    # for n in sorted(G.nodes()(data=True)): print(n)
+    return G # Your Answer Here
 
 
 # ### Part 1A - Salary Prediction
@@ -51,7 +55,7 @@ def create_the_email_graph():
 # position.
 
 def in_management(node):
-    management=node[1]['ManagementSalary']
+    management=node[1]["ManagementSalary"]
     if management==0:
         return 0
     elif management==1:
@@ -63,36 +67,36 @@ def predict_salary_type():
     df = pd.DataFrame(index=G.nodes())
     print (df.head())
     #clustering coefficient
-    df['clustering']= pd.Series(nx.clustering(G))
+    df["clustering"]= pd.Series(nx.clustering(G))
     #node degree
-    df['degree']=pd.Series([G.degree(node) for node in G.nodes()])
+    df["degree"]=pd.Series([G.degree(node) for node in G.nodes()])
     #degree centrality
-    df['degree_centrality'] = pd.Series(nx.degree_centrality(G))
+    df["degree_centrality"] = pd.Series(nx.degree_centrality(G))
     #closeness_centrality
-    df['closeness']=pd.Series(nx.closeness_centrality(G,wf_improved = True))
+    df["closeness"]=pd.Series(nx.closeness_centrality(G,wf_improved = True))
     #pageRank
-    df['pagerank'] = pd.Series(nx.pagerank(G))
+    df["pagerank"] = pd.Series(nx.pagerank(G))
     #betweeness_centrality
-    df['betweeness'] = pd.Series(nx.betweenness_centrality(G, normalized=True))
+    df["betweeness"] = pd.Series(nx.betweenness_centrality(G, normalized=True))
     #is Manager
-    df['is_manager'] = pd.Series([in_management(node) for node in G.nodes(data=True)])
+    df["is_manager"] = pd.Series([in_management(node) for node in G.nodes(data=True)])
 
     print (df.head(10))
     #select those that are not None for training
-    df_train = df[~pd.isnull(df['is_manager'])]
+    df_train = df[~pd.isnull(df["is_manager"])]
     #select those that we need to predict
-    df_test = df[pd.isnull(df['is_manager'])]
+    df_test = df[pd.isnull(df["is_manager"])]
     #classifier features
-    features = ['clustering', 'degree', 'degree_centrality', 'closeness', 'betweeness', 'pagerank']
-    features2 = ['betweeness']
+    features = ["clustering", "degree", "degree_centrality", "closeness", "betweeness", "pagerank"]
+    features2 = ["betweeness"]
     X_train = df_train[features2]
-    Y_train = df_train['is_manager']
+    Y_train = df_train["is_manager"]
     X_test = df_test[features2]
     scaler = MinMaxScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     clf = MLPClassifier(hidden_layer_sizes = [10, 5], alpha = 5,
-                       random_state = 0, solver='lbfgs', verbose=0)
+                       random_state = 0, solver="lbfgs", verbose=0)
     clf.fit(X_train_scaled, Y_train)
     test_proba = clf.predict_proba(X_test_scaled)[:, 1]
     print (pd.Series(test_proba,X_test.index))
@@ -107,8 +111,8 @@ def predict_salary_type():
 # `Future Connection` column declares whether an edge between those nodes will exist in the future. A value of 1.0
 # indicates a future connection.
 
-future_connections = pd.read_csv('data/future_connections.csv', index_col=0, converters={0: eval})
-print (future_connections.head(10))
+future_connections = pd.read_csv("data/future_connections.csv", index_col=0, converters={0: eval})
+# print (future_connections.head(10))
 
 
 # Use network `G` and the `future_connections` variable to identify the edges in `future_connections` with missing
@@ -137,5 +141,32 @@ print (future_connections.head(10))
 
 def new_connections_predictions():
     # Your Code Here
+    preferential_attachment_list = list(nx.preferential_attachment(G))
+    predictedConnections = future_connections[pd.isnull(future_connections["Future Connection"])]
+    df = pd.DataFrame(index=[(row[0], row[1]) for row in preferential_attachment_list])
+    df["preferential_attachment"] = [row[2] for row in preferential_attachment_list]
+    df["resource_allocation_index"] = [row[2] for row in list(nx.resource_allocation_index(G))]
+    df["jaccard_coefficient"] = [row[2] for row in list(nx.jaccard_coefficient(G))]
 
-    return  # Your Answer Here
+    df = future_connections.join(df, how="outer")
+
+    df_train = df[~pd.isnull(df["Future Connection"])]
+    df_test = df[pd.isnull(df["Future Connection"])]
+
+    features = ["jaccard_coefficient", "preferential_attachment", "resource_allocation_index"]
+    features2 = ["jaccard_coefficient"]
+
+    X_train = df_train[features2]
+    Y_train = df_train["Future Connection"]
+    X_test = df_test[features2]
+    scaler = MinMaxScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    clf = MLPClassifier(hidden_layer_sizes=[10, 5], alpha=5, random_state=0, solver="lbfgs", verbose=0)
+    clf.fit(X_train_scaled, Y_train)
+    probability = clf.predict_proba(X_test_scaled)[:, 1]
+    predictions = pd.Series(probability, X_test.index)
+
+    finaldf = pd.DataFrame(index= predictedConnections.index)
+    finaldf["probability"] = predictions.to_frame().join(predictedConnections, lsuffix="_caller", rsuffix="_other").loc[:,0]
+    return finaldf["probability"] # Your Answer Here

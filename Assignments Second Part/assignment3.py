@@ -11,8 +11,9 @@
 # *The network is loaded as a networkx graph object `G1`.*
 
 import networkx as nx
+import operator
 
-G1 = nx.read_gml('data/university_friendships.gml')
+G1 = nx.read_gml("data/university_friendships.gml")
 
 
 # ### Question 1
@@ -25,8 +26,12 @@ G1 = nx.read_gml('data/university_friendships.gml')
 
 def answer_one():
     # Your Code Here
-
-    return  # Your Answer Here
+    degree_centrality = nx.degree_centrality(G1)[100]
+    closeness_centrality = nx.closeness_centrality(G1)[100]
+    betweenness_centrality = nx.betweenness_centrality(G1, normalized=True, endpoints=False)[100]
+    myTuple = (degree_centrality, closeness_centrality, betweenness_centrality)
+    print(myTuple)
+    return myTuple # Your Answer Here
 
 
 # #### For Questions 2, 3, and 4, we will assume that we don't know anything about the network structure, except for
@@ -47,8 +52,10 @@ def answer_one():
 
 def answer_two():
     # Your Code Here
-
-    return  # Your Answer Here
+    degree_centrality = nx.degree_centrality(G1)
+    voucher_node_degree_centrality = max(degree_centrality, key=degree_centrality.get)
+    print(voucher_node_degree_centrality)
+    return voucher_node_degree_centrality # Your Answer Here
 
 
 # ### Question 3
@@ -65,8 +72,10 @@ def answer_two():
 
 def answer_three():
     # Your Code Here
-
-    return  # Your Answer Here
+    closeness_centrality = nx.closeness_centrality(G1)
+    voucher_node_closeness_centrality = max(closeness_centrality, key=closeness_centrality.get)
+    print(voucher_node_closeness_centrality)
+    return voucher_node_closeness_centrality # Your Answer Here
 
 
 # ### Question 4
@@ -82,8 +91,10 @@ def answer_three():
 
 def answer_four():
     # Your Code Here
-
-    return  # Your Answer Here
+    betweenness_centrality = nx.betweenness_centrality(G1, normalized=True, endpoints=False)
+    voucher_node_betweenness_centrality = max(betweenness_centrality, key=betweenness_centrality.get)
+    print(voucher_node_betweenness_centrality)
+    return voucher_node_betweenness_centrality # Your Answer Here
 
 
 # ## Part 2
@@ -91,7 +102,7 @@ def answer_four():
 # Graph `G2` is a directed graph network of political blogs, in which nodes correspond to a single blog and edges
 # correspond to links between blogs. Utilize your knowledge of PageRank and HITS to answer the following questions (5-9)
 
-G2 = nx.read_gml('data/blogs.gml')
+G2 = nx.read_gml("data/blogs.gml")
 
 # ### Question 5
 #
@@ -103,8 +114,10 @@ G2 = nx.read_gml('data/blogs.gml')
 
 def answer_five():
     # Your Code Here
-
-    return  # Your Answer Here
+    page_rank = nx.pagerank(G2, alpha=0.85)
+    realclearpolitics = page_rank["realclearpolitics.com"]
+    print(realclearpolitics)
+    return realclearpolitics # Your Answer Here
 
 
 # ### Question 6
@@ -117,8 +130,13 @@ def answer_five():
 
 def answer_six():
     # Your Code Here
-
-    return  # Your Answer Here
+    page_rank = nx.pagerank(G2, alpha=0.85)
+    page_rank_list = sorted(page_rank.items(), key=operator.itemgetter(1), reverse=True)[0:5]
+    top_5_blogs_list = []
+    for i in page_rank_list:
+        top_5_blogs_list.append(i[0])
+    print(top_5_blogs_list)
+    return top_5_blogs_list # Your Answer Here
 
 
 # ### Question 7
@@ -130,8 +148,12 @@ def answer_six():
 
 def answer_seven():
     # Your Code Here
-
-    return  # Your Answer Here
+    hits = nx.hits(G2)
+    authority_score = hits[0]["realclearpolitics.com"]
+    hub_score = hits[1]["realclearpolitics.com"]
+    myTuple = (authority_score, hub_score)
+    print(myTuple)
+    return myTuple # Your Answer Here
 
 
 # ### Question 8
@@ -143,8 +165,10 @@ def answer_seven():
 
 def answer_eight():
     # Your Code Here
-
-    return  # Your Answer Here
+    hits = nx.hits(G2)
+    hubs = hits[0]
+    top_5_blogs_list = sorted(hubs.keys(), key=lambda key: hubs[key], reverse=True)[:5]
+    return top_5_blogs_list # Your Answer Here
 
 
 # ### Question 9
@@ -156,5 +180,7 @@ def answer_eight():
 
 def answer_nine():
     # Your Code Here
-
-    return  # Your Answer Here
+    hits = nx.hits(G2)
+    authorities = hits[1]
+    top_5_blogs_list = sorted(authorities.keys(), key=lambda key: authorities[key], reverse=True)[:5]
+    return top_5_blogs_list # Your Answer Here
